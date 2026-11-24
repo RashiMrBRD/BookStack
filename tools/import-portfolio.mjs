@@ -3,13 +3,16 @@
  * IoTLab Docs — portfolio importer.
  *
  * Imports docs/portfolio markdown into BookStack via the REST API:
- *   shelf "IoTLab Portfolio" -> one Book per project (+ Foundations for shared
- *   docs) -> each .md file becomes a Page, ordered by each README's own TOC.
+ *   shelf "IoTLab Portfolio" -> one Book -> Chapters per section/project ->
+ *   each .md file becomes a Page, ordered by each README's own TOC. The
+ *   single book keeps the docs flowing in one direction — foundations
+ *   first, each project in sequence, appendix last.
  *
- * - Local image refs (../../assets/screenshots/x.png) are inlined as base64
- *   data URIs; the API extracts them into the page's gallery on save.
+ * - Local image refs (../../assets/screenshots/x.png) are uploaded through
+ *   the image-gallery API into the page's own gallery.
  * - Relative .md links are rewritten in a second pass to BookStack page URLs.
- * - Idempotent: pages are matched by book + name and updated, not duplicated.
+ * - Idempotent: chapters and pages are matched by name and updated, not
+ *   duplicated.
  *
  * Usage:
  *   BOOKSTACK_URL=https://docs.example.com \
@@ -36,18 +39,32 @@ if (!DRY && (!BASE || !process.env.BOOKSTACK_TOKEN_ID || !process.env.BOOKSTACK_
   process.exit(1);
 }
 
-// Book definitions. `dir` is relative to CONTENT_DIR; empty dir = shared docs.
-const BOOKS = [
+// Single book, chapters in reading order. `dir` is relative to CONTENT_DIR;
+// empty dir = shared docs root. `files` pins an explicit order for root
+// chapters; project chapters derive order from their README's own TOC.
+const BOOK = {
+  name: 'IoTLab Portfolio',
+  description: 'End-to-end technical documentation for the IoTLab application portfolio — read top to bottom: foundations, then each project, then the appendix.',
+};
+
+const CHAPTERS = [
   {
     dir: '',
-    name: 'Foundations',
-    description: 'Shared IoTLab portfolio foundations: how the sites work, development requirements, evidence policy, and documentation references.',
-    files: ['README.md', 'how-websites-work.md', 'development-requirements.md', 'evidence-policy.md', 'references.md', 'assets/README.md'],
+    name: 'Start Here',
+    description: 'Shared foundations: how the sites work, and what the projects require.',
+    files: ['README.md', 'how-websites-work.md', 'development-requirements.md'],
+    introName: 'Introduction — IoTLab Portfolio',
   },
-  { dir: 'projects/iotlab-website', name: 'IoTLab Website', description: 'Technical handbook for the public IoTLab website.' },
-  { dir: 'projects/reservation', name: 'Reservation Platform', description: 'Technical handbook for the laboratory reservation platform.' },
-  { dir: 'projects/borrowing', name: 'Borrowing Platform', description: 'Technical handbook for the equipment borrowing platform.' },
-  { dir: 'projects/admin-console', name: 'Admin Console', description: 'Technical handbook for the IoTLab admin console and unified API.' },
+  { dir: 'projects/iotlab-website', name: 'IoTLab Website', description: 'Public IoTLab website: pages, dynamic content, events, and the assistant.' },
+  { dir: 'projects/reservation', name: 'Reservation Platform', description: 'Laboratory reservation platform: booking lifecycle, calendar, self-service.' },
+  { dir: 'projects/borrowing', name: 'Borrowing Platform', description: 'Equipment borrowing platform: catalog, QR borrowing and returns.' },
+  { dir: 'projects/admin-console', name: 'Admin Console', description: 'Admin console and unified API: auth, operations, content, security tools.' },
+  {
+    dir: '',
+    name: 'Appendix',
+    description: 'Supporting material: evidence policy, writing references, and the screenshot index.',
+    files: ['evidence-policy.md', 'references.md', 'assets/README.md'],
+  },
 ];
 
 const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
@@ -90,12 +107,19 @@ const h1 = (md) => (md.match(/^#\s+(.+)$/m) || [null, 'Untitled'])[1].trim();
 /** Drop the document's own leading H1 — the BookStack page title renders it. */
 const stripH1 = (md) => md.replace(/^\s*#\s+.+\n+/, '');
 
-/** Ordered page list for a book dir: README first, README-TOC order, leftovers alphabetical. */
+/**
+ * Ordered page list for a chapter dir. Explicit `files` keep their listed
+ * order. Otherwise: README first, README-TOC order, leftovers alphabetical.
+ * Returns {file, abs, isReadme}.
+ */
 async function pagesFor(dir, explicitFiles) {
   const abs = path.join(CONTENT_DIR, dir);
-  let files = explicitFiles
-    ? explicitFiles.filter((f) => existsSync(path.join(abs, f)))
-    : (await readdir(abs)).filter((f) => f.endsWith('.md'));
+  if (explicitFiles) {
+    return explicitFiles
+      .filter((f) => existsSync(path.join(abs, f)))
+      .map((f) => ({ file: f, abs: path.join(abs, f), isReadme: f.toLowerCase() === 'readme.md' }));
+  }
+  const files = (await readdir(abs)).filter((f) => f.endsWith('.md'));
   const readme = files.find((f) => f.toLowerCase() === 'readme.md');
   const rest = files.filter((f) => f !== readme);
   let ordered = [];
@@ -108,7 +132,8 @@ async function pagesFor(dir, explicitFiles) {
     }
   }
   ordered.push(...rest.filter((f) => !ordered.includes(f)).sort());
-  return [readme, ...ordered].filter(Boolean).map((f) => ({ file: f, abs: path.join(abs, f) }));
+  return [readme, ...ordered].filter(Boolean)
+    .map((f) => ({ file: f, abs: path.join(abs, f), isReadme: f === readme }));
 }
 
 /** List local image refs in a doc: [{alt, ref, abs}]. */
@@ -146,40 +171,47 @@ function rewriteLinks(md, fileAbs, slugMap) {
 
 // ---------- collect source ----------
 const plan = [];
-for (const b of BOOKS) {
-  for (const { file, abs } of await pagesFor(b.dir, b.files)) {
+for (const c of CHAPTERS) {
+  for (const { file, abs, isReadme } of await pagesFor(c.dir, c.files)) {
     const md = readFileSync(abs, 'utf8');
-    const isReadme = file.toLowerCase() === 'readme.md';
     plan.push({
-      book: b.name, bookDir: b.dir, file, abs,
-      name: isReadme ? `Introduction — ${b.name}` : h1(md),
+      chapter: c.name, bookDir: c.dir, file, abs,
+      name: isReadme ? (c.introName || `Introduction — ${c.name}`) : h1(md),
       markdown: stripH1(md),
-      priority: plan.filter((p) => p.book === b.name).length + 1,
+      priority: plan.filter((p) => p.chapter === c.name).length + 1,
     });
   }
 }
-console.log(`Plan: ${plan.length} pages across ${BOOKS.length} books.`);
-for (const p of plan) console.log(`  [${p.book}] p${p.priority} ${p.name}  <- ${p.bookDir}/${p.file}`);
+console.log(`Plan: ${plan.length} pages across ${CHAPTERS.length} chapters.`);
+for (const p of plan) console.log(`  [${p.chapter}] p${p.priority} ${p.name}  <- ${p.bookDir}/${p.file}`);
 if (DRY) process.exit(0);
 
-// ---------- shelf + books ----------
+// ---------- shelf + book ----------
 const shelves = (await api('GET', 'shelves?count=500')).data;
 let shelf = shelves.find((s) => s.name === 'IoTLab Portfolio');
 if (!shelf) shelf = await api('POST', 'shelves', { name: 'IoTLab Portfolio', description: 'IoTLab system documentation portfolio.' });
 console.log(`Shelf: ${shelf.name} (#${shelf.id})`);
 
 const books = (await api('GET', 'books?count=500')).data;
-const slugMap = new Map();
-for (const b of BOOKS) {
-  let book = books.find((x) => x.name === b.name);
-  if (!book) book = await api('POST', 'books', { name: b.name, description: b.description });
-  const bookSlug = book.slug;
-  console.log(`Book: ${b.name} (#${book.id}, slug ${bookSlug})`);
+let book = books.find((x) => x.name === BOOK.name);
+if (!book) book = await api('POST', 'books', { name: BOOK.name, description: BOOK.description });
+const bookSlug = book.slug;
+console.log(`Book: ${BOOK.name} (#${book.id}, slug ${bookSlug})`);
 
-  const existing = (await api('GET', `pages?filter[book_id]=${book.id}&count=500`)).data;
-  for (const p of plan.filter((x) => x.book === b.name)) {
-    const hit = existing.find((e) => e.name === p.name);
-    const payload = { book_id: book.id, name: p.name, markdown: p.markdown, priority: p.priority };
+// ---------- chapters + pages ----------
+const chapters = (await api('GET', `chapters?filter[book_id]=${book.id}&count=500`)).data;
+const pages = (await api('GET', `pages?filter[book_id]=${book.id}&count=500`)).data;
+const slugMap = new Map();
+for (const [ci, c] of CHAPTERS.entries()) {
+  let chapter = chapters.find((x) => x.name === c.name);
+  const chapterPayload = { book_id: book.id, name: c.name, description: c.description || '', priority: ci + 1 };
+  if (chapter) chapter = await api('PUT', `chapters/${chapter.id}`, chapterPayload);
+  else chapter = await api('POST', 'chapters', chapterPayload);
+  console.log(`Chapter ${ci + 1}: ${c.name} (#${chapter.id})`);
+
+  for (const p of plan.filter((x) => x.chapter === c.name)) {
+    const hit = pages.find((e) => e.name === p.name && e.chapter_id === chapter.id);
+    const payload = { chapter_id: chapter.id, name: p.name, markdown: p.markdown, priority: p.priority };
     const page = hit
       ? await api('PUT', `pages/${hit.id}`, payload)
       : await api('POST', 'pages', payload);
@@ -198,10 +230,8 @@ for (const b of BOOKS) {
   }
 }
 
-// ---------- assign books to shelf ----------
-const bookIds = (await api('GET', 'books?count=500')).data
-  .filter((x) => BOOKS.some((b) => b.name === x.name)).map((x) => x.id);
-await api('PUT', `shelves/${shelf.id}`, { books: bookIds });
+// ---------- assign book to shelf ----------
+await api('PUT', `shelves/${shelf.id}`, { books: [book.id] });
 
 // ---------- second pass: internal link rewrite ----------
 let relinked = 0;

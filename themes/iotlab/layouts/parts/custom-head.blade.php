@@ -135,5 +135,107 @@
             display: inline;
         }
     }
+
+    /* Prev/Next pager: portfolio-style one-direction flow. Two card links —
+       previous on the left, next pushed right. */
+    .iotlab-pager {
+        display: flex;
+        gap: 16px;
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(128, 128, 128, 0.25);
+    }
+    .iotlab-pager-link {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 16px;
+        border: 1px solid rgba(128, 128, 128, 0.3);
+        border-radius: 8px;
+        text-decoration: none;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .iotlab-pager-link:hover {
+        border-color: var(--color-primary);
+        background-color: rgba(128, 128, 128, 0.08);
+        text-decoration: none;
+    }
+    .iotlab-pager-link.next {
+        margin-left: auto;
+        text-align: right;
+    }
+    .iotlab-pager-dir {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: inherit;
+        opacity: 0.6;
+    }
+    .iotlab-pager-title {
+        font-weight: 600;
+        color: var(--color-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    @media (max-width: 640px) {
+        .iotlab-pager {
+            flex-direction: column;
+        }
+        .iotlab-pager-link.next {
+            text-align: left;
+        }
+    }
 </style>
+<script>
+    // Prev/Next pager — the docs are one book read in order, so each page
+    // gets a footer link to the previous/next page in the book tree.
+    document.addEventListener('DOMContentLoaded', () => {
+        const pageContent = document.querySelector('.page-content');
+        const pageLinks = [...document.querySelectorAll(
+            '.sidebar-page-list a.entity-list-item[data-entity-type="page"]'
+        )];
+        if (!pageContent || pageLinks.length < 2) return;
+
+        let idx = pageLinks.findIndex((a) => a.classList.contains('selected'));
+        if (idx === -1) idx = pageLinks.findIndex((a) => a.pathname === location.pathname);
+        if (idx === -1) return;
+
+        const link = (cls, dir, a) => {
+            const el = document.createElement('a');
+            el.className = 'iotlab-pager-link ' + cls;
+            el.href = a.href;
+            const title = a.querySelector('.entity-list-item-name')?.textContent?.trim() || a.textContent.trim();
+            el.innerHTML =
+                '<span class="iotlab-pager-dir">' + dir + '</span>' +
+                '<span class="iotlab-pager-title"></span>';
+            el.querySelector('.iotlab-pager-title').textContent = title;
+            return el;
+        };
+
+        const nav = document.createElement('nav');
+        nav.className = 'iotlab-pager';
+        nav.setAttribute('aria-label', 'Page');
+        if (idx > 0) nav.appendChild(link('prev', '← Previous', pageLinks[idx - 1]));
+        if (idx < pageLinks.length - 1) nav.appendChild(link('next', 'Next →', pageLinks[idx + 1]));
+        if (nav.childElementCount) {
+            pageContent.after(nav);
+            // Replace the stock sibling nav: it hops to chapter index views
+            // between sections instead of continuing into the next page.
+            // Retarget its anchors so keyboard shortcuts follow the same
+            // page-to-page path before hiding it.
+            const stock = document.getElementById('sibling-navigation');
+            if (stock) {
+                const stockPrev = stock.querySelector('a[data-shortcut="previous"]');
+                const stockNext = stock.querySelector('a[data-shortcut="next"]');
+                if (stockPrev && idx > 0) stockPrev.href = pageLinks[idx - 1].href;
+                if (stockNext && idx < pageLinks.length - 1) stockNext.href = pageLinks[idx + 1].href;
+                stock.style.display = 'none';
+            }
+        }
+    });
+</script>
 <!-- End: IoTLab theme -->

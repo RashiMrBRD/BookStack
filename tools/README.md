@@ -6,25 +6,31 @@ Imports the IoTLab portfolio markdown (`docs/portfolio/` in the projects
 workspace, or any `--content-dir`) into this BookStack instance via the REST
 API.
 
-Structure produced:
+Structure produced — a single book read in one direction, chapters as
+sections:
 
 ```
 Shelf: IoTLab Portfolio
-  Book: Foundations              <- shared docs (how-websites-work, evidence policy, ...)
-  Book: IoTLab Website           <- projects/iotlab-website/*.md
-  Book: Reservation Platform     <- projects/reservation/*.md
-  Book: Borrowing Platform       <- projects/borrowing/*.md
-  Book: Admin Console            <- projects/admin-console/*.md
+  Book: IoTLab Portfolio
+    Chapter: Start Here          <- README.md, how-websites-work, development-requirements
+    Chapter: IoTLab Website      <- projects/iotlab-website/*.md
+    Chapter: Reservation Platform <- projects/reservation/*.md
+    Chapter: Borrowing Platform  <- projects/borrowing/*.md
+    Chapter: Admin Console       <- projects/admin-console/*.md
+    Chapter: Appendix            <- evidence-policy, references, assets/README
 ```
 
-- `README.md` becomes each book's first page ("Introduction") and the book's
-  description text is set from the book definition.
-- Page order follows each README's own table-of-contents link order.
-- Local `../../assets/screenshots/*.png` references are inlined as base64 data
-  URIs; BookStack extracts them into the page's image gallery on save.
+- A project `README.md` becomes its chapter's first page
+  ("Introduction — {chapter}"); the portfolio root README becomes
+  "Introduction — IoTLab Portfolio".
+- Page order follows each project README's own table-of-contents link
+  order; the two root chapters use their explicit `files` lists.
+- Local `../../assets/screenshots/*.png` refs are uploaded through the
+  image-gallery API into each page's own gallery, then embedded as served
+  URLs.
 - Relative `.md` links are resolved to BookStack `/books/<book>/page/<page>`
   URLs in a second pass after all pages exist.
-- Re-runs update pages matched by book + name — no duplicates.
+- Re-runs update chapters/pages matched by name — no duplicates.
 
 ### Environment
 
