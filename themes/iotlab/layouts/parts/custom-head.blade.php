@@ -194,21 +194,18 @@
 @if(user()->isGuest())
 <style>
     /* Guest = reader: Medium-style article layout.
-       No side rails — the grid columns collapse to zero and the panels are
-       hidden, but stay in the DOM: the prev/next pager and in-page JS read
-       the sidebar page list. */
-    .tri-layout-container {
-        grid-template-columns: 0 minmax(0, 1fr) 0 !important;
-    }
-    .tri-layout-left,
-    .tri-layout-right {
+       Left rail shows only the in-page TOC (like Medium's left action rail),
+       the article column takes the full width between the rails, and the
+       right rail keeps Details + Actions. Panels stay in the DOM — the
+       prev/next pager and in-page JS read the hidden book tree. */
+    .tri-layout-left-contents > *:not(#page-navigation) {
         display: none !important;
     }
-    .tri-layout-middle {
-        width: 100%;
-        max-width: 800px;
-        justify-self: center;
-        padding-inline: 20px;
+    .breadcrumbs {
+        display: none;
+    }
+    .tri-layout-mobile-tabs {
+        display: none;
     }
     header .mobile-menu-toggle {
         display: none;
@@ -231,10 +228,44 @@
         border: none !important;
     }
 
-    /* Article measure: Medium-scale body text on the narrower column. */
+    /* Article measure: Medium-scale body text. */
     .page-content {
-        font-size: 1.06rem;
+        font-size: 1.08rem;
         line-height: 1.7;
+    }
+
+    @media (min-width: 1000px) {
+        /* No left rail by default; it widens in only when the page actually
+           has an in-page TOC to show. Right rail is always there. */
+        .tri-layout-container {
+            grid-template-columns: 0 minmax(0, 1fr) 230px !important;
+        }
+        .tri-layout-container:has(#page-navigation) {
+            grid-template-columns: 210px minmax(0, 1fr) 230px !important;
+        }
+        .tri-layout-left {
+            padding-right: 0;
+        }
+        /* In-page TOC styled as a slim rail — quiet links, thin border. */
+        .tri-layout-left #page-navigation {
+            border-left: 1px solid rgba(128, 128, 128, 0.25);
+            padding-left: 14px;
+            position: sticky;
+            top: 20px;
+        }
+        .tri-layout-left #page-navigation .sidebar-page-nav a {
+            font-size: 0.82rem;
+        }
+    }
+    @media (max-width: 999px) {
+        .tri-layout-left {
+            display: none !important;
+        }
+        .tri-layout-middle {
+            width: 100%;
+            max-width: 860px;
+            margin-inline: auto;
+        }
     }
 </style>
 @endif
