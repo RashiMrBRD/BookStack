@@ -207,9 +207,6 @@
     .tri-layout-mobile-tabs {
         display: none;
     }
-    header .mobile-menu-toggle {
-        display: none;
-    }
 
     /* Header blends into the page — same surface as the body, no border or
        shadow separating chrome from content. */
@@ -235,18 +232,10 @@
     }
 
     @media (min-width: 1000px) {
-        /* No left rail by default; it widens in only when the page actually
-           has an in-page TOC to show. Right rail is always there. */
-        .tri-layout-container {
-            grid-template-columns: 0 minmax(0, 1fr) 230px !important;
-        }
-        .tri-layout-container:has(#page-navigation) {
-            grid-template-columns: 210px minmax(0, 1fr) 230px !important;
-        }
-        .tri-layout-left {
-            padding-right: 0;
-        }
-        /* In-page TOC styled as a slim rail — quiet links, thin border. */
+        /* In-page TOC styled as a slim rail — quiet links, thin border.
+           Grid columns are left to BookStack's own breakpoints: at >=1400px
+           it is a real side column; at 1000-1400px the side panels stack
+           natively in the left column (TOC, then Details/Actions below). */
         .tri-layout-left #page-navigation {
             border-left: 1px solid rgba(128, 128, 128, 0.25);
             padding-left: 14px;
@@ -258,7 +247,9 @@
         }
     }
     @media (max-width: 999px) {
-        .tri-layout-left {
+        /* Single column: the side panels' contents are already off-canvas
+           in this range — hide the empty wrappers and center the article. */
+        .tri-layout-sides {
             display: none !important;
         }
         .tri-layout-middle {
