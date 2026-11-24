@@ -152,7 +152,7 @@ for (const b of BOOKS) {
     const isReadme = file.toLowerCase() === 'readme.md';
     plan.push({
       book: b.name, bookDir: b.dir, file, abs,
-      name: isReadme ? 'Introduction' : h1(md),
+      name: isReadme ? `Introduction — ${b.name}` : h1(md),
       markdown: stripH1(md),
       priority: plan.filter((p) => p.book === b.name).length + 1,
     });

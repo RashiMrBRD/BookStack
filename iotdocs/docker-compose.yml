@@ -30,6 +30,8 @@ services:
       # served images (STORAGE_TYPE=local).
       - ${BOOKSTACK_DATA_PATH:-../../data/bookstack}/storage:/var/www/html/storage
       - ${BOOKSTACK_DATA_PATH:-../../data/bookstack}/uploads:/var/www/html/public/uploads
+      # Mount the synced themes/ dir so theme tweaks deploy without an image rebuild.
+      - ../themes:/var/www/html/themes
     networks:
       - uphsdm
     healthcheck:

@@ -32,7 +32,7 @@ return [
     'page-draft-color-dark' => '#8f6e6e',
     'app-custom-head'      => false,
     'registration-enabled' => false,
-    'app-homepage-type'    => 'default',
+    'app-homepage-type'    => 'books',
 
     // User-level default settings
     'user' => [
