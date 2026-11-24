@@ -136,7 +136,7 @@ function inlineImageUrls(md, fileAbs, urlByRef) {
 /** Rewrite relative .md links to BookStack URLs using the import map. */
 function rewriteLinks(md, fileAbs, slugMap) {
   const fileDir = path.dirname(fileAbs);
-  return md.replace(/(?<!!)\[([^\]]+)\]\(([^)\s]+\.md)\)/g, (m, text, ref) => {
+  return md.replace(/(?<!!)\[([^\]]+)\]\(((?!https?:)[^)\s]+\.md)\)/g, (m, text, ref) => {
     const target = path.normalize(path.resolve(fileDir, ref));
     const hit = slugMap.get(target);
     if (!hit) { console.warn(`  ! unresolved doc link ${ref} in ${fileAbs}`); return m; }
