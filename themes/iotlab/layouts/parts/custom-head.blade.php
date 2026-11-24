@@ -231,6 +231,23 @@
         line-height: 1.7;
     }
 
+    /* Book outline: drop the colored side bars on chapter/page rows —
+       the expanded TOC (list-item override) makes them redundant chrome. */
+    .book-contents .entity-list-item > .icon,
+    .book-contents .chapter-expansion > .icon {
+        display: none;
+    }
+    /* Quiet treatment for the expanded per-chapter page list: the "N Pages"
+       toggle stays (default-open for guests) but reads as a count label. */
+    .book-contents .chapter-contents-toggle {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .book-contents .chapter-contents-list .entity-list-item-name {
+        font-size: 0.95rem;
+    }
+
     @media (min-width: 1000px) {
         /* In-page TOC styled as a slim rail — quiet links, thin border.
            Grid columns are left to BookStack's own breakpoints: at >=1400px
