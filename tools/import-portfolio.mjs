@@ -44,7 +44,7 @@ if (!DRY && (!BASE || !process.env.BOOKSTACK_TOKEN_ID || !process.env.BOOKSTACK_
 // chapters; project chapters derive order from their README's own TOC.
 const BOOK = {
   name: 'IoTLab Portfolio',
-  description: 'End-to-end technical documentation for the IoTLab application portfolio — read top to bottom: foundations, then each project, then the appendix.',
+  description: 'End-to-end technical documentation for the IoTLab application portfolio. Read top to bottom: foundations, then each project, then the appendix.',
 };
 
 const CHAPTERS = [
@@ -53,7 +53,7 @@ const CHAPTERS = [
     name: 'Start Here',
     description: 'Shared foundations: how the sites work, and what the projects require.',
     files: ['README.md', 'how-websites-work.md', 'development-requirements.md'],
-    introName: 'Introduction — IoTLab Portfolio',
+    introName: 'Introduction: IoTLab Portfolio',
   },
   { dir: 'projects/iotlab-website', name: 'IoTLab Website', description: 'Public IoTLab website: pages, dynamic content, events, and the assistant.' },
   { dir: 'projects/reservation', name: 'Reservation Platform', description: 'Laboratory reservation platform: booking lifecycle, calendar, self-service.' },
@@ -176,7 +176,7 @@ for (const c of CHAPTERS) {
     const md = readFileSync(abs, 'utf8');
     plan.push({
       chapter: c.name, bookDir: c.dir, file, abs,
-      name: isReadme ? (c.introName || `Introduction — ${c.name}`) : h1(md),
+      name: isReadme ? (c.introName || `Introduction: ${c.name}`) : h1(md),
       markdown: stripH1(md),
       priority: plan.filter((p) => p.chapter === c.name).length + 1,
     });

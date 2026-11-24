@@ -21,8 +21,13 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.bookstack.rule=Host(`${DOCS_DOMAIN:?Set DOCS_DOMAIN in iotdocs/.env or the environment}`)"
       - "traefik.http.routers.bookstack.entrypoints=web"
-      - "traefik.http.routers.bookstack.middlewares=security-headers@file,compress@file"
+      - "traefik.http.routers.bookstack.middlewares=security-headers@file,compress@file,bookstack-root-redirect@docker"
       - "traefik.http.services.bookstack.loadbalancer.server.port=80"
+      # Guests land on the single book's chapter outline, not the books grid:
+      # exact root path redirects to /books/iotlab-portfolio (302, all users).
+      - "traefik.http.middlewares.bookstack-root-redirect.redirectregex.regex=^https?://${DOCS_DOMAIN}/$$"
+      - "traefik.http.middlewares.bookstack-root-redirect.redirectregex.replacement=https://${DOCS_DOMAIN}/books/iotlab-portfolio"
+      - "traefik.http.middlewares.bookstack-root-redirect.redirectregex.permanent=false"
       - "traefik.http.routers.bookstack.service=bookstack"
     volumes:
       # Persistent app data lives on host dirs OUTSIDE the synced source tree —
