@@ -62,7 +62,33 @@ async function api(method, endpoint, body) {
   return res.status === 204 ? {} : res.json();
 }
 
+/** Upload a local image file to a page's gallery; returns the served URL. */
+async function uploadImage(pageId, imgPath) {
+  // Reuse an existing same-named gallery image on this page (idempotent).
+  const existing = (await api('GET', `image-gallery?filter[uploaded_to]=${pageId}&count=500`)).data
+    .find((img) => img.name === path.basename(imgPath));
+  if (existing) return existing.url;
+
+  const form = new FormData();
+  const buf = readFileSync(imgPath);
+  form.append('type', 'gallery');
+  form.append('uploaded_to', String(pageId));
+  form.append('name', path.basename(imgPath));
+  form.append('image', new Blob([buf], { type: MIME[path.extname(imgPath).toLowerCase()] }), path.basename(imgPath));
+  const res = await fetch(`${BASE}/api/image-gallery`, {
+    method: 'POST',
+    headers: { Authorization: `Token ${TOKEN}` },
+    body: form,
+  });
+  if (!res.ok) throw new Error(`image-gallery upload ${imgPath} -> ${res.status} ${await res.text()}`);
+  const img = await res.json();
+  return img.url;
+}
+
 const h1 = (md) => (md.match(/^#\s+(.+)$/m) || [null, 'Untitled'])[1].trim();
+
+/** Drop the document's own leading H1 — the BookStack page title renders it. */
+const stripH1 = (md) => md.replace(/^\s*#\s+.+\n+/, '');
 
 /** Ordered page list for a book dir: README first, README-TOC order, leftovers alphabetical. */
 async function pagesFor(dir, explicitFiles) {
@@ -85,15 +111,25 @@ async function pagesFor(dir, explicitFiles) {
   return [readme, ...ordered].filter(Boolean).map((f) => ({ file: f, abs: path.join(abs, f) }));
 }
 
-/** Inline local images as data URIs; keep .md links for the second pass. */
-function preprocess(md, fileAbs) {
+/** List local image refs in a doc: [{alt, ref, abs}]. */
+function imageRefs(md, fileAbs) {
+  const fileDir = path.dirname(fileAbs);
+  const refs = [];
+  for (const [, alt, ref] of md.matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)) {
+    if (/^https?:|data:/.test(ref)) continue;
+    const imgPath = path.resolve(fileDir, ref);
+    if (existsSync(imgPath)) refs.push({ alt, ref, abs: imgPath });
+    else console.warn(`  ! missing image ${ref} in ${fileAbs}`);
+  }
+  return refs;
+}
+
+/** Replace local image refs in markdown with already-uploaded URLs. */
+function inlineImageUrls(md, fileAbs, urlByRef) {
   const fileDir = path.dirname(fileAbs);
   return md.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, ref) => {
-    if (/^https?:|data:/.test(ref)) return m;
-    const imgPath = path.resolve(fileDir, ref);
-    const mime = MIME[path.extname(imgPath).toLowerCase()];
-    if (!mime || !existsSync(imgPath)) { console.warn(`  ! missing image ${ref} in ${fileAbs}`); return m; }
-    return `![${alt}](data:${mime};base64,${readFileSync(imgPath).toString('base64')})`;
+    const hit = urlByRef.get(path.normalize(path.resolve(fileDir, ref)));
+    return hit ? `![${alt}](${hit})` : m;
   });
 }
 
@@ -117,7 +153,7 @@ for (const b of BOOKS) {
     plan.push({
       book: b.name, bookDir: b.dir, file, abs,
       name: isReadme ? 'Introduction' : h1(md),
-      markdown: preprocess(md, abs),
+      markdown: stripH1(md),
       priority: plan.filter((p) => p.book === b.name).length + 1,
     });
   }
@@ -147,7 +183,16 @@ for (const b of BOOKS) {
     const page = hit
       ? await api('PUT', `pages/${hit.id}`, payload)
       : await api('POST', 'pages', payload);
-    console.log(`  ${hit ? 'updated' : 'created'} p${p.priority}: ${p.name} (#${page.id})`);
+
+    // Upload local images into this page's gallery, then re-save with real URLs.
+    const refs = imageRefs(p.markdown, p.abs);
+    if (refs.length) {
+      const urlByRef = new Map();
+      for (const r of refs) urlByRef.set(path.normalize(r.abs), await uploadImage(page.id, r.abs));
+      p.markdown = inlineImageUrls(p.markdown, p.abs, urlByRef);
+      await api('PUT', `pages/${page.id}`, { ...payload, markdown: p.markdown });
+    }
+    console.log(`  ${hit ? 'updated' : 'created'} p${p.priority}: ${p.name} (#${page.id}, ${refs.length} images)`);
     slugMap.set(path.normalize(p.abs), { bookSlug, pageSlug: page.slug, pageId: page.id });
     p.pageId = page.id;
   }

@@ -5,7 +5,7 @@
 FROM composer:2 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist
+RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --ignore-platform-reqs
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
 
@@ -21,8 +21,6 @@ RUN apt-get update \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" gd zip pdo_mysql exif opcache \
     && a2enmod rewrite headers \
-    && apt-get purge -y libpng-dev libjpeg62-turbo-dev libfreetype6-dev libzip-dev \
-    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Serve the app from public/
@@ -36,7 +34,7 @@ COPY . .
 
 COPY iotdocs/entrypoint.sh /usr/local/bin/iotdocs-entrypoint.sh
 RUN chmod +x /usr/local/bin/iotdocs-entrypoint.sh \
-    && mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache public/uploads \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache public/uploads \
     && chown -R www-data:www-data storage bootstrap/cache public/uploads
 
 EXPOSE 80

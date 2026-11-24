@@ -5,7 +5,7 @@
 set -e
 cd /var/www/html
 
-mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache public/uploads
+mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache public/uploads
 chown -R www-data:www-data storage bootstrap/cache public/uploads
 
 # DB schema is managed here so `compose up` alone is sufficient after rebuilds.
