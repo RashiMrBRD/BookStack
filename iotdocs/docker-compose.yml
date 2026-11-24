@@ -1,0 +1,63 @@
+# IoTLab Docs (BookStack fork) — Docker Compose
+# Domain/URL config is env-driven — no literals here:
+#   - iotdocs/.env    feeds ${VAR} substitution (DOCS_DOMAIN, BOOKSTACK_DATA_PATH)
+#   - ../.env (env_file) feeds both containers' runtime env (APP_*, DB_*, MYSQL_*)
+# MariaDB is a private sibling service on the shared uphsdm network, named
+# uniquely (bookstack-db) so its service alias can't collide with other apps.
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: iotdocs/Dockerfile
+    container_name: bookstack
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bookstack.rule=Host(`${DOCS_DOMAIN:?Set DOCS_DOMAIN in iotdocs/.env or the environment}`)"
+      - "traefik.http.routers.bookstack.entrypoints=web"
+      - "traefik.http.routers.bookstack.middlewares=security-headers@file,compress@file"
+      - "traefik.http.services.bookstack.loadbalancer.server.port=80"
+      - "traefik.http.routers.bookstack.service=bookstack"
+    volumes:
+      # Persistent app data lives on host dirs OUTSIDE the synced source tree —
+      # storage/ holds sessions, cache, uploads metadata; public/uploads holds
+      # served images (STORAGE_TYPE=local).
+      - ${BOOKSTACK_DATA_PATH:-../../data/bookstack}/storage:/var/www/html/storage
+      - ${BOOKSTACK_DATA_PATH:-../../data/bookstack}/uploads:/var/www/html/public/uploads
+    networks:
+      - uphsdm
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  db:
+    image: mariadb:11.8
+    container_name: bookstack-db
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    # NO public port mapping — reachable only inside the uphsdm network.
+    volumes:
+      - ${BOOKSTACK_DATA_PATH:-../../data/bookstack}/db:/var/lib/mysql
+    networks:
+      - uphsdm
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+networks:
+  uphsdm:
+    external: true
+    name: uphsdm
