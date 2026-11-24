@@ -4,7 +4,7 @@
              src="{{ setting('app-logo', '') === '' ? url('/logo.png') : url(setting('app-logo', '')) }}"
              alt="{{ setting('app-name-header') ? '' : setting('app-name') }}">
         <img class="logo-image logo-variant-dark"
-             src="{{ url('/logo-dark.png') }}"
+             src="{{ url('/logo-dark.png') }}?v={{ @filemtime(public_path('logo-dark.png')) ?: '1' }}"
              alt="" aria-hidden="true">
     @endif
     @if (setting('app-name-header'))

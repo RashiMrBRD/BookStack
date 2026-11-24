@@ -26,7 +26,6 @@
     }
     header .logo .logo-variant-dark {
         display: none;
-        height: 60px;
     }
     html.dark-mode header .logo .logo-variant-light {
         display: none;
