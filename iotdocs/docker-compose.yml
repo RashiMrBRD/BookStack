@@ -32,6 +32,7 @@ services:
       - ${BOOKSTACK_DATA_PATH:-../../data/bookstack}/uploads:/var/www/html/public/uploads
       # Mount the synced themes/ dir so theme tweaks deploy without an image rebuild.
       - ../themes:/var/www/html/themes
+      - ../public/logo-dark.png:/var/www/html/public/logo-dark.png
     networks:
       - uphsdm
     healthcheck:

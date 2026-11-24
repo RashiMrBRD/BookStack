@@ -16,26 +16,75 @@
         --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, sans-serif;
     }
 
-    /* Brand logo: the IoTLab wordmark is dark-on-transparent, so it sits on a
-       light pill to stay readable against the maroon header (and in dark mode). */
-    header .logo {
-        background-color: #fff;
-        border-radius: 10px;
-        padding: 6px 18px;
-        margin-inline-start: 0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
-    }
-    header .logo:hover {
-        text-decoration: none;
-    }
+    /* Brand logo: transparent tile, part of the header itself. The dark
+       wordmark rides the light header; the light wordmark rides the
+       dark-mode header. */
     header .logo .logo-image {
-        height: 40px;
+        height: 44px;
         width: auto;
         display: block;
     }
+    header .logo .logo-variant-dark {
+        display: none;
+        height: 52px;
+    }
+    html.dark-mode header .logo .logo-variant-light {
+        display: none;
+    }
+    html.dark-mode header .logo .logo-variant-dark {
+        display: block;
+    }
     header .logo .logo-text {
-        color: #800000;
+        color: #fff;
         font-weight: 700;
+    }
+
+    /* Light theme: light header surface so the dark wordmark sits directly
+       on it; all header chrome flips to maroon. */
+    html:not(.dark-mode) header {
+        background-color: #fafaf5 !important;
+        color: #333;
+        border-bottom-color: rgba(128, 0, 0, 0.18);
+    }
+    html:not(.dark-mode) header .links a,
+    html:not(.dark-mode) header .user-name,
+    html:not(.dark-mode) header .mobile-menu-toggle {
+        color: #800000;
+        fill: #800000;
+    }
+    html:not(.dark-mode) header .links a:hover,
+    html:not(.dark-mode) header .user-name:hover {
+        background-color: rgba(128, 0, 0, 0.08);
+    }
+    html:not(.dark-mode) header .mobile-menu-toggle {
+        border-color: rgba(128, 0, 0, 0.45);
+    }
+    html:not(.dark-mode) header .search-box input {
+        background-color: #fff;
+        border-color: rgba(0, 0, 0, 0.18);
+        color: #333;
+    }
+    html:not(.dark-mode) header .search-box input::placeholder {
+        color: #666;
+        opacity: 0.85;
+    }
+    html:not(.dark-mode) header #header-search-box-button {
+        color: #800000;
+    }
+    html:not(.dark-mode) header * {
+        outline-color: #800000;
+    }
+
+    /* Search sits next to the logo: logo and search get max-content columns,
+       the nav keeps the remaining 1fr and stays right-aligned. */
+    @media (min-width: 1001px) {
+        header.grid {
+            grid-template-columns: max-content max-content 1fr;
+        }
+        header > .flex-container-column {
+            align-items: flex-start;
+            padding-inline-start: 24px;
+        }
     }
 
     /* Breadcrumbs: BookStack drops the labels below 1000px and renders at 70%
