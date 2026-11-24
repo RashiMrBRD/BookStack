@@ -74,6 +74,45 @@
         outline-color: #800000;
     }
 
+    /* Dark theme: pure black header (the dark brand color #b33939 reads as
+       washed-out red here); header chrome stays light for contrast. */
+    html.dark-mode header {
+        background-color: #000 !important;
+        color: #eee;
+        border-bottom-color: rgba(255, 255, 255, 0.15);
+    }
+    html.dark-mode header .search-box input {
+        background-color: #151515;
+        border-color: rgba(255, 255, 255, 0.25);
+        color: #eee;
+    }
+    html.dark-mode header .search-box input::placeholder {
+        color: #999;
+        opacity: 1;
+    }
+
+    /* Sidebar nav legibility in dark mode: item text is dim grey by default —
+       raise it to near-white and keep the selected page clearly marked. */
+    html.dark-mode .tri-layout-left .entity-list-item {
+        color: #f0f0f0;
+    }
+    html.dark-mode .tri-layout-left .entity-list-item .entity-list-item-name {
+        color: inherit;
+    }
+    html.dark-mode .tri-layout-left .entity-list-item.selected {
+        background-color: rgba(255, 255, 255, 0.14);
+    }
+    html.dark-mode .tri-layout-left .entity-list-item .icon {
+        opacity: 1;
+    }
+    html.dark-mode .tri-layout-left .chapter-expansion,
+    html.dark-mode .tri-layout-left .chapter-contents-toggle {
+        color: #d0d0d0;
+    }
+    html.dark-mode .tri-layout-left .sidebar-page-list {
+        color: #f0f0f0;
+    }
+
     /* Search sits next to the logo: logo and search get max-content columns,
        the nav keeps the remaining 1fr and stays right-aligned. */
     @media (min-width: 1001px) {
