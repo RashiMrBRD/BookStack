@@ -193,16 +193,18 @@
 
 @if(user()->isGuest())
 <style>
-    /* Guest = reader: Medium-style article layout.
-       Left rail shows only the in-page TOC (like Medium's left action rail),
-       the article column takes the full width between the rails, and the
-       right rail keeps Details + Actions. Panels stay in the DOM — the
-       prev/next pager and in-page JS read the hidden book tree. */
-    .tri-layout-left-contents > *:not(#page-navigation) {
-        display: none !important;
-    }
+    /* Guest = reader: Medium-style article layout, but the side rails stay —
+       left keeps search/book nav/recent activity, right keeps Details +
+       Actions. Panels stay in the DOM — the prev/next pager and in-page JS
+       read the hidden book tree. */
     .breadcrumbs {
         display: none;
+    }
+
+    /* Breathing room: the transparent header has no border/shadow marking
+       where chrome ends and body begins, so give the layout a real gap. */
+    .tri-layout-container {
+        padding-top: 1.5rem;
     }
     .tri-layout-mobile-tabs {
         display: none;
