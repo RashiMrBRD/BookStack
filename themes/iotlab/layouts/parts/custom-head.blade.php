@@ -190,6 +190,54 @@
         }
     }
 </style>
+
+@if(user()->isGuest())
+<style>
+    /* Guest = reader: Medium-style article layout.
+       No side rails — the grid columns collapse to zero and the panels are
+       hidden, but stay in the DOM: the prev/next pager and in-page JS read
+       the sidebar page list. */
+    .tri-layout-container {
+        grid-template-columns: 0 minmax(0, 1fr) 0 !important;
+    }
+    .tri-layout-left,
+    .tri-layout-right {
+        display: none !important;
+    }
+    .tri-layout-middle {
+        width: 100%;
+        max-width: 800px;
+        justify-self: center;
+        padding-inline: 20px;
+    }
+    header .mobile-menu-toggle {
+        display: none;
+    }
+
+    /* Header blends into the page — same surface as the body, no border or
+       shadow separating chrome from content. */
+    html:not(.dark-mode) header,
+    html.dark-mode header {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border-bottom: none !important;
+    }
+
+    /* Card chrome off — the article sits directly on the page surface. */
+    main.content-wrap.card,
+    .content-wrap.card {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    /* Article measure: Medium-scale body text on the narrower column. */
+    .page-content {
+        font-size: 1.06rem;
+        line-height: 1.7;
+    }
+</style>
+@endif
 <script>
     // Prev/Next pager — the docs are one book read in order, so each page
     // gets a footer link to the previous/next page in the book tree.
